@@ -112,6 +112,7 @@ sys_sigalarm(void)
   }
   p->interval = interval;
   p->handler = handler;
+  p->enable_handler = 1;
 
   return 0;
 }
@@ -119,6 +120,8 @@ sys_sigalarm(void)
 uint64
 sys_sigreturn(void)
 {
- 
+  struct proc* p = myproc();
+  p->enable_handler = 1;
+ *(p->trapframe) = p->alarm_trapframe;
   return 0;
 }
