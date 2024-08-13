@@ -140,7 +140,9 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
-
+  
+  p->curend = MAXVA - 2 * PGSIZE;// 堆最高端
+  
   return p;
 }
 
@@ -315,7 +317,16 @@ fork(void)
   np->state = RUNNABLE;
   release(&np->lock);
 
-  return pid;
+  // 将父进程的 vma 数组全部拷贝过去
+    memmove(np->vma, p->vma, sizeof(struct vma_t));
+    np->curend = p->curend;
+    // 注意文件计数加 1
+    for (int i = 0; i < MAXVMA; ++i) {
+        if (np->vma[i].valid == 1)
+            filedup(np->vma[i].f);
+    }
+
+    return pid;
 }
 
 // Pass p's abandoned children to init.
@@ -341,8 +352,13 @@ exit(int status)
 {
   struct proc *p = myproc();
 
-  if(p == initproc)
-    panic("init exiting");
+   if(p == initproc)
+        panic("init exiting");
+
+    for (int i = 0; i < MAXVMA; ++i) {
+        if (p->vma[i].valid == 1)
+            subunmap(p->vma[i].va, p->vma[i].len);
+    }
 
   // Close all open files.
   for(int fd = 0; fd < NOFILE; fd++){

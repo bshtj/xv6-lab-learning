@@ -1,3 +1,14 @@
+#define MAXVMA 16
+struct vma_t {
+    int valid;// 1 表示有效；0 表示无效即可使用
+    uint64 va;
+    uint len;
+    int  prot;
+    int  flags;
+    int  fd;
+    long off;
+    struct file *f;
+};
 // Saved registers for kernel context switches.
 struct context {
   uint64 ra;
@@ -84,6 +95,9 @@ enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
 struct proc {
+  struct vma_t vma[MAXVMA];
+  uint64 curend;
+  	
   struct spinlock lock;
 
   // p->lock must be held when using these:
